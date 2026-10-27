@@ -38,6 +38,25 @@ button{font:inherit;cursor:pointer}
 .bg i:nth-child(3){width:240px;height:240px;left:20%;bottom:-90px;background:#ffe36b;animation-duration:26s;animation-delay:-12s}
 @keyframes drift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(40px,-60px,0) scale(1.18)}}
 
+
+/* ---------- Cámara como fondo (queda activa tras el escaneo) ---------- */
+.camBg{position:fixed;inset:0;z-index:-1;display:none;background:#04101e;overflow:hidden}
+.camBg video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);filter:saturate(1.1)}
+.camBg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,70,130,.42),rgba(0,125,195,.16) 38%,rgba(6,24,50,.6))}
+body.cam .camBg{display:block}
+body.cam .bg{display:none}
+body.cam .sectitle,body.cam .res-h h2,body.cam .foot,body.cam .legal,body.cam .progt{color:#fff;text-shadow:0 1px 10px rgba(0,20,50,.85)}
+body.cam .res-h h2 span{background:linear-gradient(90deg,#c8e23c,#ffe36b,#ffb347);-webkit-background-clip:text;background-clip:text;text-shadow:none;filter:drop-shadow(0 2px 8px rgba(0,20,50,.7))}
+body.cam .card,body.cam .m,body.cam .note,body.cam .warn{background:rgba(255,255,255,.68)}
+body.cam .legal b{color:#fff}
+body.cam .center{background:rgba(255,255,255,.78);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1.5px solid rgba(255,255,255,.9);border-radius:var(--r);margin-top:30px}
+.camTog{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;display:none;align-items:center;gap:6px;border:0;border-radius:999px;padding:10px 14px;font-weight:800;font-size:13px;color:var(--blue-d);background:rgba(255,255,255,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 22px -10px rgba(0,30,70,.7)}
+body.cam .camTog{display:inline-flex}
+.camTog i{width:8px;height:8px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 0 rgba(255,59,48,.6);animation:rec 1.8s infinite}
+@keyframes rec{70%{box-shadow:0 0 0 7px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
+
+.av{display:flex;gap:9px;align-items:flex-start;border-radius:14px;padding:10px 12px;font-size:13.5px;line-height:1.4;margin-bottom:10px;font-weight:600}
+.av.yes{background:#e8f7cf;color:#2f5a05}.av.no{background:#ffe1da;color:#8a2a12}.av.unk{background:#fff3c4;color:#6b5000}.av.alt{background:#e0f2ff;color:#04507e}
 /* ---------- Barra superior ---------- */
 .top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.72);backdrop-filter:saturate(1.8) blur(18px);-webkit-backdrop-filter:saturate(1.8) blur(18px);padding-top:env(safe-area-inset-top)}
 .top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--sky),var(--green),var(--yellow),var(--orange),var(--coral),var(--sky));background-size:200% 100%;animation:slide 8s linear infinite}
@@ -242,6 +261,8 @@ pre.dbg{white-space:pre-wrap;word-break:break-word;font-size:11px;background:#0e
 <body>
 
 <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="camBg" id="camBg" aria-hidden="true"><video id="bgvid" playsinline muted autoplay></video></div>
+<button class="camTog" id="camTog" type="button"><i></i><span>Apagar cámara</span></button>
 
 <header class="top">
   <div class="top-in">

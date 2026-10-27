@@ -108,7 +108,7 @@
   $('#qnext').addEventListener('click', () => { if (state.q < 2) { state.q++; renderQ(); window.scrollTo(0, 0); } else show('s-intro'); });
 
   /* ---------- Escaneo ---------- */
-  const vid = $('#vid'), oval = $('#oval'), scanEl = $('#scan');
+  const bgvid = $('#bgvid'), vid = $('#vid'), oval = $('#oval'), scanEl = $('#scan');
   let stream = null, scanning = false, geo = null;
 
   let busyTimer = null;
@@ -129,19 +129,29 @@
     }
     document.body.appendChild(box); setTimeout(() => box.remove(), 4200);
   }
-  function fail(t, p) { busyStop(); $('#errT').textContent = t; $('#errP').textContent = p; show('s-err'); }
+  function fail(t, p) { busyStop(); camOff(); $('#errT').textContent = t; $('#errP').textContent = p; show('s-err'); }
   $('#errRetry').addEventListener('click', () => show('s-intro'));
-  $('#errSkip').addEventListener('click', () => finish(null));
-  $('#skipScan').addEventListener('click', () => finish(null));
+  $('#errSkip').addEventListener('click', () => { camOff(); finish(null); });
+  $('#skipScan').addEventListener('click', () => { camOff(); finish(null); });
   $('#startCam').addEventListener('click', startScan);
   $('#scCancel').addEventListener('click', () => { stopScan(); show('s-intro'); });
 
-  function stopScan() {
+  function stopScan(keep) {
     scanning = false;
-    if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+    if (keep && stream) {
+      // la cámara sigue encendida y pasa a ser el fondo de la app (solo se ve en el celular, no se graba)
+      bgvid.srcObject = stream; document.body.classList.add('cam');
+      const pl = bgvid.play(); if (pl && pl.catch) pl.catch(() => {});
+    } else camOff();
     vid.srcObject = null;
     scanEl.classList.remove('on');
   }
+  function camOff() {
+    if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+    bgvid.srcObject = null; document.body.classList.remove('cam');
+  }
+  $('#camTog').addEventListener('click', camOff);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && stream && bgvid.srcObject) { const pl = bgvid.play(); if (pl && pl.catch) pl.catch(() => {}); } });
   function layout() {
     const cw = scanEl.clientWidth, ch = scanEl.clientHeight;
     const ow = Math.min(cw * 0.72, ch * 0.44), oh = ow * 1.3;
@@ -245,7 +255,7 @@
     const snap = document.createElement('canvas'); snap.width = vid.videoWidth; snap.height = vid.videoHeight;
     snap.getContext('2d').drawImage(vid, 0, 0);
     const fl = document.createElement('div'); fl.className = 'flash'; scanEl.appendChild(fl); setTimeout(() => fl.remove(), 600);
-    stopScan(); show('s-busy'); busyStart();
+    stopScan(true); show('s-busy'); busyStart();
     await new Promise((r) => setTimeout(r, 60));
     let scan = null;
     try {
@@ -289,6 +299,7 @@
     return '<div class="m" style="--mc:' + MC[i % MC.length] + ';animation-delay:' + (0.08 * i + 0.1) + 's"><span class="k">' + (emoji ? '<b>' + emoji + '</b>' : '') + k + '</span>' + (extra || '') + '<span class="v">' + v + '</span>' + (s ? '<span class="s">' + s + '</span>' : '') + '</div>';
   }
 
+  const STOCK_NOTE = '<div class="av unk">🛒 <span><b>Acércate a caja y consulta el stock de esta farmacia.</b></span></div>';
   function finish(scan) {
     state.scan = scan;
     const rec = SR.recommend(state.answers, scan);
@@ -315,7 +326,7 @@
       '<span class="spark" style="left:8%;top:30%;animation-delay:.2s">✦</span><span class="spark" style="left:44%;top:16%;animation-delay:1.2s;font-size:13px">✦</span><span class="spark" style="right:10%;top:12%;animation-delay:2s">✦</span><span class="spark" style="right:44%;bottom:22%;animation-delay:.8s;font-size:12px">✦</span>' +
       '<div class="stage" id="stage" aria-label="Modelo 3D de ' + p.name + '">' + (p.img ? '<img src="' + p.img + '" alt="">' : BOTTLE) + '</div>' +
       '<div class="txt"><span class="brand2">' + p.brand + '</span><h3>' + p.name + '</h3><span class="focus">' + p.focus + '</span></div></div>' +
-      '<div class="body"><p class="bl">' + p.blurb + '</p><b class="rt">💡 Por qué te lo recomendamos</b><ul class="list" style="margin-top:10px">' +
+      '<div class="body">' + STOCK_NOTE + '<p class="bl">' + p.blurb + '</p><b class="rt">💡 Por qué te lo recomendamos</b><ul class="list" style="margin-top:10px">' +
       rec.reasons.map((r) => '<li>' + r + '</li>').join('') + '</ul><div class="how"><b>Cómo usarlo:</b> ' + p.how + '</div></div></div>';
 
     if (rec.notes.length) {
@@ -328,7 +339,7 @@
     h += '<p class="foot">Farmacias Salcobrand · Tu imagen no se guardó ni se envió.</p>';
     if (DEBUG) h += '<pre class="dbg">' + JSON.stringify({ answers: a, scan, ranking: rec.ranking }, (k, v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v), 1) + '</pre>';
     $('#s-res').innerHTML = h;
-    $('#again').addEventListener('click', () => { if (model) { model.dispose(); model = null; } state.answers = { skin: null, spf: null, routine: [] }; state.scan = null; state.q = 0; $('#consent').checked = false; $('#go').disabled = true; show('s-welcome'); });
+    $('#again').addEventListener('click', () => { camOff(); if (model) { model.dispose(); model = null; } state.answers = { skin: null, spf: null, routine: [] }; state.scan = null; state.q = 0; $('#consent').checked = false; $('#go').disabled = true; show('s-welcome'); });
     busyStop(); show('s-res'); confetti();
     if (model) { model.dispose(); model = null; }
     if (SR.mountProduct3D && C.MODEL_3D !== false) model = SR.mountProduct3D($('#stage'), p.id);

@@ -41,6 +41,10 @@ No hay servidor, base de datos ni Google Sheets. Todo corre en el celular.
 3. **Escaneo**: cámara frontal con un óvalo guía. La app revisa en vivo que haya rostro, distancia, centrado, luz pareja, mirada de frente y rostro relajado, y captura sola cuando todo está bien por unos 2 segundos. Si no lo logra, a los 20 s aparece "Capturar ahora".
 4. **Resultados**: forma de cara, edad estimada (rango), maquillaje (detectado, no detectado o no concluyente), granos o rojeces, uniformidad del tono, producto recomendado con los motivos, notas de compatibilidad con lo que ya usa y avisos.
 
+**La cámara queda encendida como fondo** de la pantalla de resultados (la persona se ve a sí misma de fondo, con un velo azul para que el texto se lea). Un botón flotante "Apagar cámara" la apaga cuando quiera; también se apaga al tocar "Volver a empezar" o si ocurre un error. El video solo se muestra en el celular: no se graba ni se envía.
+
+El resultado no consulta stock: muestra el aviso fijo "Acércate a caja y consulta el stock de esta farmacia" (constante `STOCK_NOTE` en `js/app.js`).
+
 Si la persona rechaza la cámara o su navegador no la permite, puede **continuar solo con sus respuestas** y recibe igual una recomendación.
 
 ## Estética
@@ -117,7 +121,7 @@ La cámara solo funciona con **HTTPS**, que GitHub Pages ya incluye. En Instagra
 
 ## Privacidad y datos personales
 
-- La foto se toma en memoria, se analiza en el celular y se descarta. **No se guarda ni se envía** ninguna imagen ni resultado, y no hay analítica ni cookies.
+- La foto se toma en memoria, se analiza en el celular y se descarta. La cámara en vivo de fondo solo se muestra en pantalla y se puede apagar. **No se guarda ni se envía** ninguna imagen ni resultado, y no hay analítica ni cookies.
 - La app pide confirmar que la persona es **mayor de 18 años** y acepta el uso de la cámara antes de empezar.
 - Un escaneo facial puede considerarse **dato biométrico** según la legislación chilena de protección de datos. Aunque aquí no se almacena nada, conviene que el área legal de Salcobrand revise los textos de la bienvenida y del aviso final antes de lanzar.
 - Los modelos, el motor 3D y la librería facial se sirven desde el mismo sitio, sin pedir recursos a terceros.

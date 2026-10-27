@@ -61,6 +61,7 @@
     if (ranking[1] && Math.abs(top.score - ranking[1].score) < 0.15 && ranking[1].id === 'centella') top = ranking[1]; // empate: la opción más suave
     const primary = P.find((p) => p.id === top.id);
 
+
     // --- Motivos (los 3 mejores) ---
     let reasons = why[primary.id].sort((a, b) => b.pts - a.pts).slice(0, 3).map((r) => r.reason);
     if (!reasons.length) reasons = [primary.id === 'centella'
