@@ -48,27 +48,39 @@
     { id: 'grasa', t: 'Grasa', d: 'Brillo en todo el rostro y poros visibles' },
     { id: 'nose',  t: 'No lo sé', d: 'No hay problema, usaremos el resto de tus datos' }
   ];
+  const ICONS = {
+    seca: ['🌵', '#ffe9c4', '#ffc978'], mixta: ['🌗', '#d9f0ff', '#e5f6b8'], grasa: ['💧', '#cdeeff', '#8fd6ff'], nose: ['🤷', '#eadcff', '#cdb8ff'],
+    si: ['☀️', '#fff3b0', '#ffd54a'], no: ['🌙', '#dfe6ff', '#b9c6ff'],
+    retinoides: ['🧪', '#e5f6b8', '#bfe35c'], acidos: ['🍋', '#fff3b0', '#ffe066'], vitc: ['🍊', '#ffe0b8', '#ffb347'],
+    peroxido: ['🫧', '#d9f0ff', '#9fd8ff'], niacinamida: ['💎', '#d3f4f1', '#8fe3d8'], receta: ['🩺', '#ffd9d1', '#ffb4a6'], ninguno: ['🧴', '#eef2f6', '#d5dde6']
+  };
   function optBtn(id, t, d, sel, multi) {
-    return '<button type="button" class="opt' + (multi ? ' multi' : '') + (sel ? ' sel' : '') + '" data-id="' + id + '"><span class="dot"></span><span><b>' + t + '</b>' + (d ? '<span class="d">' + d + '</span>' : '') + '</span></button>';
+    const ic = ICONS[id] || ['✨', '#e3f4ff', '#f0fadb'];
+    return '<button type="button" class="opt' + (multi ? ' multi' : '') + (sel ? ' sel' : '') + '" data-id="' + id + '"><span class="ic" style="--c1:' + ic[1] + ';--c2:' + ic[2] + '">' + ic[0] + '</span><span><b>' + t + '</b>' + (d ? '<span class="d">' + d + '</span>' : '') + '</span><span class="dot"></span></button>';
+  }
+  function isSel(id) {
+    const a = state.answers;
+    return state.q === 0 ? a.skin === id : state.q === 1 ? (id === 'si' ? a.spf === true : a.spf === false) : a.routine.includes(id);
   }
   function renderQ() {
     const a = state.answers;
     document.querySelectorAll('#prog i').forEach((el, i) => el.classList.toggle('on', i <= state.q));
+    $('#progT').textContent = 'Paso ' + (state.q + 1) + ' de 3';
     let html = '';
     if (state.q === 0) {
-      html = '<h2>¿Cómo es tu piel?</h2><p class="sub">Elige la que más se parezca a la tuya.</p><div class="opts">' +
+      html = '<h2>¿Cómo es <span>tu piel</span>?</h2><p class="sub">Elige la que más se parezca a la tuya.</p><div class="opts">' +
         SKIN.map((o) => optBtn(o.id, o.t, o.d, a.skin === o.id)).join('') + '</div>';
     } else if (state.q === 1) {
-      html = '<h2>¿Usas protector solar?</h2><p class="sub">En el rostro, de día.</p><div class="opts">' +
+      html = '<h2>¿Usas <span>protector solar</span>?</h2><p class="sub">En el rostro, de día.</p><div class="opts">' +
         optBtn('si', 'Sí, lo uso', 'Todos los días o casi todos', a.spf === true) +
         optBtn('no', 'No, o rara vez', '', a.spf === false) + '</div>';
     } else {
-      html = '<h2>¿Qué otros productos usas?</h2><p class="sub">Puedes elegir varios. Lo usamos para evitar mezclas que irriten.</p><div class="opts">' +
+      html = '<h2>¿Qué <span>otros productos</span> usas?</h2><p class="sub">Puedes elegir varios. Lo usamos para evitar mezclas que irriten.</p><div class="opts">' +
         C.ROUTINE.map((o) => optBtn(o.id, o.label, o.hint, a.routine.includes(o.id), true)).join('') + '</div>';
     }
     $('#qbody').innerHTML = html;
     $('#qback').style.visibility = 'visible';
-    $('#qnext').textContent = state.q === 2 ? 'Continuar al escaneo' : 'Siguiente';
+    $('#qnext').textContent = state.q === 2 ? 'Ir al escaneo 📷' : 'Siguiente';
     syncNext();
     $('#qbody').querySelectorAll('.opt').forEach((b) => b.addEventListener('click', () => pick(b.dataset.id)));
   }
@@ -83,7 +95,9 @@
         a.routine = a.routine.includes(id) ? a.routine.filter((r) => r !== id) : a.routine.concat(id);
       }
     }
-    renderQ();
+    document.querySelectorAll('#qbody .opt').forEach((b) => b.classList.toggle('sel', isSel(b.dataset.id)));
+    syncNext();
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
   }
   function syncNext() {
     const a = state.answers;
@@ -97,7 +111,25 @@
   const vid = $('#vid'), oval = $('#oval'), scanEl = $('#scan');
   let stream = null, scanning = false, geo = null;
 
-  function fail(t, p) { $('#errT').textContent = t; $('#errP').textContent = p; show('s-err'); }
+  let busyTimer = null;
+  const BUSY = ['Midiendo proporciones…', 'Revisando el tono de tu piel…', 'Buscando tu match…', 'Casi listo ✨'];
+  function busyStart() {
+    let i = 0; $('#busyMsg').textContent = BUSY[0]; clearInterval(busyTimer);
+    busyTimer = setInterval(() => { i = Math.min(i + 1, BUSY.length - 1); $('#busyMsg').textContent = BUSY[i]; }, 1100);
+  }
+  function busyStop() { clearInterval(busyTimer); }
+  function confetti() {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const box = document.createElement('div'); box.className = 'confetti';
+    const cols = ['#007dc3', '#00a9e8', '#96c11f', '#c8e23c', '#ffd500', '#f29100', '#ff5b3a', '#35d6c4'];
+    for (let i = 0; i < 46; i++) {
+      const e = document.createElement('i');
+      e.style.cssText = 'left:' + Math.random() * 100 + '%;background:' + cols[i % cols.length] + ';--x:' + (Math.random() * 160 - 80) + 'px;--r:' + (Math.random() * 900 - 450) + 'deg;--d:' + (2.2 + Math.random() * 1.6) + 's;--dl:' + Math.random() * 0.5 + 's;width:' + (6 + Math.random() * 8) + 'px;height:' + (9 + Math.random() * 12) + 'px;' + (i % 4 === 0 ? 'border-radius:50%;' : '');
+      box.appendChild(e);
+    }
+    document.body.appendChild(box); setTimeout(() => box.remove(), 4200);
+  }
+  function fail(t, p) { busyStop(); $('#errT').textContent = t; $('#errP').textContent = p; show('s-err'); }
   $('#errRetry').addEventListener('click', () => show('s-intro'));
   $('#errSkip').addEventListener('click', () => finish(null));
   $('#skipScan').addEventListener('click', () => finish(null));
@@ -117,7 +149,8 @@
     Object.assign(oval.style, { width: ow + 'px', height: oh + 'px', left: cx - ow / 2 + 'px', top: cy - oh / 2 + 'px' });
     const svg = $('#ringSvg'), pad = 9;
     Object.assign(svg.style, { width: ow + 2 * pad + 'px', height: oh + 2 * pad + 'px', left: cx - ow / 2 - pad + 'px', top: cy - oh / 2 - pad + 'px' });
-    const e = $('#ringE'); e.setAttribute('cx', (ow + 2 * pad) / 2); e.setAttribute('cy', (oh + 2 * pad) / 2); e.setAttribute('rx', ow / 2 + 2); e.setAttribute('ry', oh / 2 + 2);
+    const rx = ow / 2 + 2, ry = oh / 2 + 2, mx = (ow + 2 * pad) / 2, my = (oh + 2 * pad) / 2;
+    $('#ringE').setAttribute('d', 'M' + mx + ',' + (my - ry) + ' A' + rx + ',' + ry + ' 0 1 1 ' + mx + ',' + (my + ry) + ' A' + rx + ',' + ry + ' 0 1 1 ' + mx + ',' + (my - ry));
     geo = { cw, ch, ow, oh, cx, cy };
   }
   addEventListener('resize', () => { if (scanEl.classList.contains('on')) layout(); });
@@ -211,7 +244,8 @@
   async function finishScan(ages, lastPts) {
     const snap = document.createElement('canvas'); snap.width = vid.videoWidth; snap.height = vid.videoHeight;
     snap.getContext('2d').drawImage(vid, 0, 0);
-    stopScan(); show('s-busy');
+    const fl = document.createElement('div'); fl.className = 'flash'; scanEl.appendChild(fl); setTimeout(() => fl.remove(), 600);
+    stopScan(); show('s-busy'); busyStart();
     await new Promise((r) => setTimeout(r, 60));
     let scan = null;
     try {
@@ -248,47 +282,54 @@
   const SKINN = { seca: 'Seca', mixta: 'Mixta', grasa: 'Grasa', nose: 'No indicado' };
   const LVT = { ok: 'Sin conflicto', leve: 'Con cuidado', alternar: 'Alternar', consultar: 'Consultar' };
 
-  function metric(k, v, s, extra, wide) { return '<div class="m' + (wide ? ' wide' : '') + '"><span class="k">' + k + '</span>' + (extra || '') + '<span class="v">' + v + '</span>' + (s ? '<span class="s">' + s + '</span>' : '') + '</div>'; }
+  let mIdx = 0;
+  const MC = ['linear-gradient(90deg,#007dc3,#00a9e8)', 'linear-gradient(90deg,#96c11f,#c8e23c)', 'linear-gradient(90deg,#ffd500,#f29100)', 'linear-gradient(90deg,#00a9e8,#35d6c4)', 'linear-gradient(90deg,#ff5b3a,#f29100)'];
+  function metric(k, v, s, extra, emoji) {
+    const i = mIdx++;
+    return '<div class="m" style="--mc:' + MC[i % MC.length] + ';animation-delay:' + (0.08 * i + 0.1) + 's"><span class="k">' + (emoji ? '<b>' + emoji + '</b>' : '') + k + '</span>' + (extra || '') + '<span class="v">' + v + '</span>' + (s ? '<span class="s">' + s + '</span>' : '') + '</div>';
+  }
 
   function finish(scan) {
     state.scan = scan;
     const rec = SR.recommend(state.answers, scan);
     const a = state.answers, p = rec.primary;
-    let h = '<div class="res-h"><h2>Tu resumen</h2><span class="tag">' + C.TEXT.DISCLAIMER_SHORT + '</span></div>';
+    mIdx = 0;
+    let h = '<div class="res-h"><h2>Tu <span>resumen</span> ✨</h2><span class="tag">' + C.TEXT.DISCLAIMER_SHORT + '</span></div>';
     h += '<div class="grid">';
     if (scan) {
-      h += metric('Forma de cara', scan.shape.label, scan.shape.text, ICON[scan.shape.key]);
-      h += metric('Edad estimada', scan.age ? scan.ageMin + ' a ' + scan.ageMax + ' años' : 'No disponible', 'Aproximada: el error puede ser de varios años.');
+      h += metric('Forma de cara', scan.shape.label, scan.shape.text, ICON[scan.shape.key], '🫶');
+      h += metric('Edad estimada', scan.age ? scan.ageMin + ' a ' + scan.ageMax + ' años' : 'No disponible', 'Aproximada: el error puede ser de varios años.', '', '🎂');
       const mk = scan.makeup;
       h += metric('Maquillaje', mk.state === 'detectado' ? 'Detectado' : mk.state === 'no' ? 'No detectado' : 'No concluyente',
-        mk.state === 'detectado' ? (mk.where.length ? 'Se notó en ' + mk.where.join(' y ') + '.' : 'Se notó color en el rostro.') : mk.state === 'dudoso' ? 'Podría ser maquillaje suave o luz.' : 'No vimos color intenso en labios ni ojos.');
+        mk.state === 'detectado' ? (mk.where.length ? 'Se notó en ' + mk.where.join(' y ') + '.' : 'Se notó color en el rostro.') : mk.state === 'dudoso' ? 'Podría ser maquillaje suave o luz.' : 'No vimos color intenso en labios ni ojos.', '', '💄');
       const bl = scan.blemish;
-      h += metric('Granos o rojeces', bl.level === 'baja' ? 'Pocas o ninguna' : bl.level === 'media' ? 'Algunas' : 'Varias', 'Marcas rojizas visibles. No es un diagnóstico de acné.', lvlBar(LVN[bl.level], true));
+      h += metric('Granos o rojeces', bl.level === 'baja' ? 'Pocas o ninguna' : bl.level === 'media' ? 'Algunas' : 'Varias', 'Marcas rojizas visibles. No es un diagnóstico de acné.', lvlBar(LVN[bl.level], true), '🌸');
       const tn = scan.tone;
-      h += metric('Uniformidad del tono', tn.level === 'baja' ? 'Pareja' : tn.level === 'media' ? 'Algo irregular' : 'Irregular', 'Posibles zonas más oscuras o manchas.', lvlBar(LVN[tn.level], true), false);
+      h += metric('Uniformidad del tono', tn.level === 'baja' ? 'Pareja' : tn.level === 'media' ? 'Algo irregular' : 'Irregular', 'Posibles zonas más oscuras o manchas.', lvlBar(LVN[tn.level], true), '🎨');
     }
-    h += metric('Tu piel (según tú)', SKINN[a.skin], 'Protector solar: ' + (a.spf ? 'sí' : 'no') + '.');
+    h += metric('Tu piel (según tú)', SKINN[a.skin], 'Protector solar: ' + (a.spf ? 'sí' : 'no') + '.', '', '💧');
     h += '</div>';
 
-    h += '<div class="sectitle">Producto recomendado</div>';
-    h += '<div class="card prod" style="--pc:' + p.color + '"><div class="tile"><span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="#96c11f"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.6 7L12 17.3 5.8 21l1.6-7L2 9.3l7.1-.7z"/></svg>Para ti</span>' +
+    h += '<div class="sectitle">🏆 Producto recomendado</div>';
+    h += '<div class="card prod" style="--pc:' + p.color + '"><div class="tile"><span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="#96c11f"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.6 7L12 17.3 5.8 21l1.6-7L2 9.3l7.1-.7z"/></svg>Tu match</span>' +
+      '<span class="spark" style="left:8%;top:30%;animation-delay:.2s">✦</span><span class="spark" style="left:44%;top:16%;animation-delay:1.2s;font-size:13px">✦</span><span class="spark" style="right:10%;top:12%;animation-delay:2s">✦</span><span class="spark" style="right:44%;bottom:22%;animation-delay:.8s;font-size:12px">✦</span>' +
       '<div class="stage" id="stage" aria-label="Modelo 3D de ' + p.name + '">' + (p.img ? '<img src="' + p.img + '" alt="">' : BOTTLE) + '</div>' +
       '<div class="txt"><span class="brand2">' + p.brand + '</span><h3>' + p.name + '</h3><span class="focus">' + p.focus + '</span></div></div>' +
-      '<div class="body"><p class="bl">' + p.blurb + '</p><b style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue-d)">Por qué te lo recomendamos</b><ul class="list" style="margin-top:10px">' +
+      '<div class="body"><p class="bl">' + p.blurb + '</p><b class="rt">💡 Por qué te lo recomendamos</b><ul class="list" style="margin-top:10px">' +
       rec.reasons.map((r) => '<li>' + r + '</li>').join('') + '</ul><div class="how"><b>Cómo usarlo:</b> ' + p.how + '</div></div></div>';
 
     if (rec.notes.length) {
-      h += '<div class="sectitle">Con lo que ya usas</div>';
+      h += '<div class="sectitle">🔗 Con lo que ya usas</div>';
       h += rec.notes.map((n) => '<div class="note"><b>' + n.label + ' <span class="lv ' + n.level + '">' + LVT[n.level] + '</span></b><span>' + n.text + '</span></div>').join('');
     }
-    h += '<div class="sectitle">Ten en cuenta</div><div class="warn"><ul class="list">' + rec.warnings.concat(rec.tips).map((w) => '<li>' + w + '</li>').join('') + '</ul></div>';
+    h += '<div class="sectitle">⚠️ Ten en cuenta</div><div class="warn"><ul class="list">' + rec.warnings.concat(rec.tips).map((w) => '<li>' + w + '</li>').join('') + '</ul></div>';
     h += '<p class="legal"><b>Importante:</b> ' + C.TEXT.DISCLAIMER_LONG + '</p>';
-    h += '<div style="margin-top:20px"><button class="btn" id="again">Volver a empezar</button></div>';
+    h += '<div style="margin-top:20px"><button class="btn" id="again">Volver a empezar 🔄</button></div>';
     h += '<p class="foot">Farmacias Salcobrand · Tu imagen no se guardó ni se envió.</p>';
     if (DEBUG) h += '<pre class="dbg">' + JSON.stringify({ answers: a, scan, ranking: rec.ranking }, (k, v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v), 1) + '</pre>';
     $('#s-res').innerHTML = h;
     $('#again').addEventListener('click', () => { if (model) { model.dispose(); model = null; } state.answers = { skin: null, spf: null, routine: [] }; state.scan = null; state.q = 0; $('#consent').checked = false; $('#go').disabled = true; show('s-welcome'); });
-    show('s-res');
+    busyStop(); show('s-res'); confetti();
     if (model) { model.dispose(); model = null; }
     if (SR.mountProduct3D && C.MODEL_3D !== false) model = SR.mountProduct3D($('#stage'), p.id);
   }

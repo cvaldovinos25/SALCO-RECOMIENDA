@@ -43,6 +43,10 @@ No hay servidor, base de datos ni Google Sheets. Todo corre en el celular.
 
 Si la persona rechaza la cámara o su navegador no la permite, puede **continuar solo con sus respuestas** y recibe igual una recomendación.
 
+## Estética
+
+Interfaz mobile first inspirada en salcobrand.cl, con la paleta del logo (azul, celeste, verde, amarillo y naranja): fondo con degradados animados, tarjetas de vidrio, botones con brillo, íconos de colores en cada pregunta, barra de progreso con degradado, escaneo con efecto de barrido y anillo luminoso, mensajes rotativos al analizar y confeti al mostrar el resultado. Las animaciones se desactivan con la opción "reducir movimiento" del celular. Los colores y degradados están al inicio de `index.html` (variables `:root`).
+
 ## Qué mide el análisis y qué tan confiable es
 
 Todo son **estimaciones** hechas con visión por computador clásica sobre una foto tomada en el momento. Ninguna imagen sale del celular.
